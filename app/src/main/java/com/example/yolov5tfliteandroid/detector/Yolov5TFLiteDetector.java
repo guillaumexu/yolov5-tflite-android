@@ -10,6 +10,7 @@ import android.util.Size;
 import android.widget.Toast;
 
 import com.example.yolov5tfliteandroid.MainActivity;
+import com.example.yolov5tfliteandroid.R;
 import com.example.yolov5tfliteandroid.utils.Recognition;
 
 import org.checkerframework.checker.nullness.Opt;
@@ -52,51 +53,53 @@ public class Yolov5TFLiteDetector {
     private final float IOU_THRESHOLD = 0.45f;
     private final float IOU_CLASS_DUPLICATED_THRESHOLD = 0.7f;
     private final String MODEL_YOLOV5S = "yolov5s-fp16-320-metadata.tflite";
-//    private final String MODEL_YOLOV5S = "yolov5s-dynamic.tflite";
+    private final String MODEL_YOLOV5S_DYNAMIC = "yolov5s-dynamic.tflite";
     private final String MODEL_YOLOV5N =  "yolov5n-fp16-320.tflite";
     private final String MODEL_YOLOV5M = "yolov5m-fp16-320.tflite";
     private final String MODEL_YOLOV5S_INT8 = "yolov5s-int8-320.tflite";
     private final String LABEL_FILE = "coco_label.txt";
     MetadataExtractor.QuantizationParams input5SINT8QuantParams = new MetadataExtractor.QuantizationParams(0.003921568859368563f, 0);
     MetadataExtractor.QuantizationParams output5SINT8QuantParams = new MetadataExtractor.QuantizationParams(0.006305381190031767f, 5);
-    private String MODEL_FILE;
+    private String mModelFile;
 
     private Interpreter tflite;
     private List<String> associatedAxisLabels;
-    Interpreter.Options options = new Interpreter.Options();
+    Interpreter.Options mOption = new Interpreter.Options();
 
-    public String getModelFile() {
-        return this.MODEL_FILE;
-    }
+    public String getModelFile() { return this.mModelFile; }
 
     public void setModelFile(String modelFile){
         switch (modelFile) {
             case "yolov5s":
                 IS_INT8 = false;
-                MODEL_FILE = MODEL_YOLOV5S;
+                mModelFile = MODEL_YOLOV5S;
                 break;
             case "yolov5n":
                 IS_INT8 = false;
-                MODEL_FILE = MODEL_YOLOV5N;
+                mModelFile = MODEL_YOLOV5N;
                 break;
             case "yolov5m":
                 IS_INT8 = false;
-                MODEL_FILE = MODEL_YOLOV5M;
+                mModelFile = MODEL_YOLOV5M;
                 break;
+            case "yolov5s-dynamic":
+                IS_INT8 = false;
+                mModelFile = MODEL_YOLOV5S_DYNAMIC;
+                break;
+
             case "yolov5s-int8":
                 IS_INT8 = true;
-                MODEL_FILE = MODEL_YOLOV5S_INT8;
+                mModelFile = MODEL_YOLOV5S_INT8;
                 break;
             default:
                 Log.i("tfliteSupport", "Only yolov5s/n/m/sint8 can be load!");
         }
     }
 
-    public String getLabelFile() {
-        return this.LABEL_FILE;
-    }
+    public String getLabelFile() {return this.LABEL_FILE;}
 
     public Size getInputSize(){return this.INPNUT_SIZE;}
+
     public int[] getOutputSize(){return this.OUTPUT_SIZE;}
 
     /**
@@ -107,15 +110,19 @@ public class Yolov5TFLiteDetector {
     public void initialModel(Context activity) {
         // Initialise the model
         try {
+            //加载模型文件
+            ByteBuffer tfliteModel = FileUtil.loadMappedFile(activity, mModelFile);
 
-            ByteBuffer tfliteModel = FileUtil.loadMappedFile(activity, MODEL_FILE);
-            tflite = new Interpreter(tfliteModel, options);
-            Log.i("tfliteSupport", "Success reading model: " + MODEL_FILE);
+            //new 一个解释器实例，传入模型文件和模型选项，
+            tflite = new Interpreter(tfliteModel, mOption);
+            Log.i("tfliteSupport", "Success reading model: " + mModelFile);
 
+            //读取标记分类文件
             associatedAxisLabels = FileUtil.loadLabels(activity, LABEL_FILE);
             Log.i("tfliteSupport", "Success reading label: " + LABEL_FILE);
 
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             Log.e("tfliteSupport", "Error reading model or label: ", e);
             Toast.makeText(activity, "load model error: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
@@ -330,6 +337,10 @@ public class Yolov5TFLiteDetector {
     }
 
 
+    /**
+    boxIou 方框重叠
+     */
+
     protected float boxIou(RectF a, RectF b) {
         float intersection = boxIntersection(a, b);
         float union = boxUnion(a, b);
@@ -337,6 +348,10 @@ public class Yolov5TFLiteDetector {
         return intersection / union;
     }
 
+
+    /**
+    boxIou 方框交叉
+     */
     protected float boxIntersection(RectF a, RectF b) {
         float maxLeft = a.left > b.left ? a.left : b.left;
         float maxTop = a.top > b.top ? a.top : b.top;
@@ -350,6 +365,9 @@ public class Yolov5TFLiteDetector {
         return area;
     }
 
+    /**
+    boxIou 方框合并
+     */
     protected float boxUnion(RectF a, RectF b) {
         float i = boxIntersection(a, b);
         float u = (a.right - a.left) * (a.bottom - a.top) + (b.right - b.left) * (b.bottom - b.top) - i;
@@ -359,35 +377,39 @@ public class Yolov5TFLiteDetector {
     /**
      * 添加NNapi代理
      */
-    public void addNNApiDelegate() {
-        NnApiDelegate nnApiDelegate = null;
-        // Initialize interpreter with NNAPI delegate for Android Pie or above
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-//            NnApiDelegate.Options nnApiOptions = new NnApiDelegate.Options();
-//            nnApiOptions.setAllowFp16(true);
-//            nnApiOptions.setUseNnapiCpu(true);
-            //ANEURALNETWORKS_PREFER_LOW_POWER：倾向于以最大限度减少电池消耗的方式执行。这种设置适合经常执行的编译。
-            //ANEURALNETWORKS_PREFER_FAST_SINGLE_ANSWER：倾向于尽快返回单个答案，即使这会耗费更多电量。这是默认值。
-            //ANEURALNETWORKS_PREFER_SUSTAINED_SPEED：倾向于最大限度地提高连续帧的吞吐量，例如，在处理来自相机的连续帧时。
-//            nnApiOptions.setExecutionPreference(NnApiDelegate.Options.EXECUTION_PREFERENCE_SUSTAINED_SPEED);
-//            nnApiDelegate = new NnApiDelegate(nnApiOptions);
-            nnApiDelegate = new NnApiDelegate();
-            options.addDelegate(nnApiDelegate);
-            Log.i("tfliteSupport", "using nnapi delegate.");
-        }
-    }
+//    public void addNNApiDelegate() {
+//        NnApiDelegate nnApiDelegate = null;
+//        // Initialize interpreter with NNAPI delegate for Android Pie or above
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+////            NnApiDelegate.Options nnApiOptions = new NnApiDelegate.Options();
+////            nnApiOptions.setAllowFp16(true);
+////            nnApiOptions.setUseNnapiCpu(true);
+//            //ANEURALNETWORKS_PREFER_LOW_POWER：倾向于以最大限度减少电池消耗的方式执行。这种设置适合经常执行的编译。
+//            //ANEURALNETWORKS_PREFER_FAST_SINGLE_ANSWER：倾向于尽快返回单个答案，即使这会耗费更多电量。这是默认值。
+//            //ANEURALNETWORKS_PREFER_SUSTAINED_SPEED：倾向于最大限度地提高连续帧的吞吐量，例如，在处理来自相机的连续帧时。
+////            nnApiOptions.setExecutionPreference(NnApiDelegate.Options.EXECUTION_PREFERENCE_SUSTAINED_SPEED);
+////            nnApiDelegate = new NnApiDelegate(nnApiOptions);
+//            nnApiDelegate = new NnApiDelegate();
+//            mOption.addDelegate(nnApiDelegate);
+//            Log.i("tfliteSupport", "using nnapi delegate.");
+//        }
+//    }
 
     /**
      * 添加GPU代理
      */
     public void addGPUDelegate() {
         CompatibilityList compatibilityList = new CompatibilityList();
+
+        //如果当前设备支持GPU加速，模型选项加上GpuDelegate
         if(compatibilityList.isDelegateSupportedOnThisDevice()){
             GpuDelegate.Options delegateOptions = compatibilityList.getBestOptionsForThisDevice();
             GpuDelegate gpuDelegate = new GpuDelegate(delegateOptions);
-            options.addDelegate(gpuDelegate);
+            mOption.addDelegate(gpuDelegate);
             Log.i("tfliteSupport", "using gpu delegate.");
-        } else {
+        }
+        //如果没有，加上
+        else {
             addThread(4);
         }
     }
@@ -397,7 +419,6 @@ public class Yolov5TFLiteDetector {
      * @param thread
      */
     public void addThread(int thread) {
-        options.setNumThreads(thread);
+        mOption.setNumThreads(thread);
     }
-
 }

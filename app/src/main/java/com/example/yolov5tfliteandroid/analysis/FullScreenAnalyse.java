@@ -34,23 +34,14 @@ import io.reactivex.rxjava3.schedulers.Schedulers;
 
 public class FullScreenAnalyse implements ImageAnalysis.Analyzer {
 
-    public static class Result{
-
-        public Result(long costTime, Bitmap bitmap) {
-            this.costTime = costTime;
-            this.bitmap = bitmap;
-        }
-        long costTime;
-        Bitmap bitmap;
-    }
 
     ImageView boxLabelCanvas;
-    PreviewView previewView;
-    int rotation;
+    PreviewView mPreviewView;
+    int mRotation;
     private TextView inferenceTimeTextView;
     private TextView frameSizeTextView;
-    ImageProcess imageProcess;
-    private Yolov5TFLiteDetector yolov5TFLiteDetector;
+    ImageProcess imageProcess = new ImageProcess();
+    private Yolov5TFLiteDetector mYolov5TFLiteDetector;
 
     public FullScreenAnalyse(Context context,
                              PreviewView previewView,
@@ -59,22 +50,21 @@ public class FullScreenAnalyse implements ImageAnalysis.Analyzer {
                              TextView inferenceTimeTextView,
                              TextView frameSizeTextView,
                              Yolov5TFLiteDetector yolov5TFLiteDetector) {
-        this.previewView = previewView;
+        this.mPreviewView = previewView;
         this.boxLabelCanvas = boxLabelCanvas;
-        this.rotation = rotation;
+        this.mRotation = rotation;
         this.inferenceTimeTextView = inferenceTimeTextView;
         this.frameSizeTextView = frameSizeTextView;
-        this.imageProcess = new ImageProcess();
-        this.yolov5TFLiteDetector = yolov5TFLiteDetector;
+        this.mYolov5TFLiteDetector = yolov5TFLiteDetector;
     }
 
     @Override
     public void analyze(@NonNull ImageProxy image) {
-        int previewHeight = previewView.getHeight();
-        int previewWidth = previewView.getWidth();
+        int previewHeight = mPreviewView.getHeight();
+        int previewWidth = mPreviewView.getWidth();
 
         // 这里Observable将image analyse的逻辑放到子线程计算, 渲染UI的时候再拿回来对应的数据, 避免前端UI卡顿
-        Observable.create( (ObservableEmitter<Result> emitter) -> {
+        Observable.create((ObservableEmitter<Result> emitter) -> {
             long start = System.currentTimeMillis();
             Log.i("image",""+previewWidth+'/'+previewHeight);
 
@@ -106,13 +96,13 @@ public class FullScreenAnalyse implements ImageAnalysis.Analyzer {
 
             // 图片适应屏幕fill_start格式的bitmap
             double scale = Math.max(
-                    previewHeight / (double) (rotation % 180 == 0 ? imagewWidth : imageHeight),
-                    previewWidth / (double) (rotation % 180 == 0 ? imageHeight : imagewWidth)
+                    previewHeight / (double) (mRotation % 180 == 0 ? imagewWidth : imageHeight),
+                    previewWidth / (double) (mRotation % 180 == 0 ? imageHeight : imagewWidth)
             );
             Matrix fullScreenTransform = imageProcess.getTransformationMatrix(
                     imagewWidth, imageHeight,
                     (int) (scale * imageHeight), (int) (scale * imagewWidth),
-                    rotation % 180 == 0 ? 90 : 0, false
+                    mRotation % 180 == 0 ? 90 : 0, false
             );
 
             // 适应preview的全尺寸bitmap
@@ -127,8 +117,8 @@ public class FullScreenAnalyse implements ImageAnalysis.Analyzer {
             Matrix previewToModelTransform =
                     imageProcess.getTransformationMatrix(
                             cropImageBitmap.getWidth(), cropImageBitmap.getHeight(),
-                            yolov5TFLiteDetector.getInputSize().getWidth(),
-                            yolov5TFLiteDetector.getInputSize().getHeight(),
+                            mYolov5TFLiteDetector.getInputSize().getWidth(),
+                            mYolov5TFLiteDetector.getInputSize().getHeight(),
                             0, false);
             Bitmap modelInputBitmap = Bitmap.createBitmap(cropImageBitmap, 0, 0,
                     cropImageBitmap.getWidth(), cropImageBitmap.getHeight(),
@@ -137,7 +127,7 @@ public class FullScreenAnalyse implements ImageAnalysis.Analyzer {
             Matrix modelToPreviewTransform = new Matrix();
             previewToModelTransform.invert(modelToPreviewTransform);
 
-            ArrayList<Recognition> recognitions = yolov5TFLiteDetector.detect(modelInputBitmap);
+            ArrayList<Recognition> recognitions = mYolov5TFLiteDetector.detect(modelInputBitmap);
 
             Bitmap emptyCropSizeBitmap = Bitmap.createBitmap(previewWidth, previewHeight, Bitmap.Config.ARGB_8888);
             Canvas cropCanvas = new Canvas(emptyCropSizeBitmap);
@@ -163,16 +153,28 @@ public class FullScreenAnalyse implements ImageAnalysis.Analyzer {
             long end = System.currentTimeMillis();
             long costTime = (end - start);
             image.close();
-            emitter.onNext(new Result(costTime, emptyCropSizeBitmap));
-        }).subscribeOn(Schedulers.io()) // 这里定义被观察者,也就是上面代码的线程, 如果没定义就是主线程同步, 非异步
-                // 这里就是回到主线程, 观察者接受到emitter发送的数据进行处理
-                .observeOn(AndroidSchedulers.mainThread())
-                // 这里就是回到主线程处理子线程的回调数据.
-                .subscribe((Result result) -> {
+            emitter.onNext(new Result(costTime, emptyCropSizeBitmap));//新建Result实例并发射出去
+        })
+                .subscribeOn(Schedulers.io()) // 这里定义被观察者,也就是上面代码的线程, 如果没定义就是主线程同步, 非异步
+                .observeOn(AndroidSchedulers.mainThread())//回到主线程（观察者已经接受到emitter发送的数据）
+                .subscribe(
+                    (result) -> {
                     boxLabelCanvas.setImageBitmap(result.bitmap);
                     frameSizeTextView.setText(previewHeight + "x" + previewWidth);
-                    inferenceTimeTextView.setText(Long.toString(result.costTime) + "ms");
-                });
+                    inferenceTimeTextView.setText(Long.toString(result.costTime) + "ms");}
+                );//处理回调数据;
 
     }
+
+    //保存耗时和图片
+    private static class Result{
+
+        public Result(long costTime, Bitmap bitmap) {
+            this.costTime = costTime;
+            this.bitmap = bitmap;
+        }
+        long costTime;
+        Bitmap bitmap;
+    }
+
 }

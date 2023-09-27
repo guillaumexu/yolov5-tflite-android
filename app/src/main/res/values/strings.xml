@@ -5,6 +5,12 @@
         <item>yolov5s</item>
         <item>yolov5n </item>
         <item>yolov5m</item>
+        <item>yolov5s-dynamic</item>
         <item>yolov5s-int8</item>
     </string-array>
+    <string name="yolov5s">yolov5s-fp16-320-metadata.tflite</string>
+    <string name="yolov5n">yolov5n-fp16-320.tflite</string>
+    <string name="yolov5m">yolov5m-fp16-320.tflite</string>
+    <string name="yolov5s_dynamic">yolov5s-dynamic.tflite</string>
+    <string name="yolov5s_int8">yolov5s-int8-320.tflite</string>
 </resources>

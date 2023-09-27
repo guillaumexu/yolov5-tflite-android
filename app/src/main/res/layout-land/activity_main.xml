@@ -15,11 +15,11 @@
 
     <androidx.camera.view.PreviewView
         android:id="@+id/camera_preview_wrap"
-        android:layout_width="match_parent"
-        android:layout_height="1440px"
+        android:layout_width="518dp"
+        android:layout_height="match_parent"
         android:background="#00000000"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"/>
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
         android:id="@+id/box_label_canvas"
@@ -30,101 +30,101 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/widgets"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_width="213dp"
+        android:layout_height="175dp"
         android:background="#66000000"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent">
+        app:layout_constraintRight_toRightOf="parent">
 
         <TextView
             android:id="@+id/inference"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintLeft_toLeftOf="parent"
             android:layout_marginStart="5dp"
             android:layout_marginBottom="20dp"
+            android:text="inference time: "
             android:textColor="#FFFFFF"
-            android:text="inference time: " />
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent" />
 
         <TextView
             android:id="@+id/inference_time"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
             android:layout_marginEnd="5dp"
             android:layout_marginBottom="20dp"
             android:text="xx ms"
-            android:textColor="#FFFFFF" />
+            android:textColor="#FFFFFF"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintRight_toRightOf="parent" />
 
         <TextView
             android:id="@+id/frame"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:layout_constraintBottom_toTopOf="@id/inference"
-            app:layout_constraintLeft_toLeftOf="parent"
             android:layout_marginStart="5dp"
             android:layout_marginBottom="5dp"
+            android:text="Frame size: "
             android:textColor="#FFFFFF"
-            android:text="Frame size: " />
+            app:layout_constraintBottom_toTopOf="@id/inference"
+            app:layout_constraintLeft_toLeftOf="parent" />
 
         <TextView
             android:id="@+id/frame_size"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/inference_time"
             android:layout_marginEnd="5dp"
             android:layout_marginBottom="5dp"
             android:text="heigth x width"
-            android:textColor="#FFFFFF" />
+            android:textColor="#FFFFFF"
+            app:layout_constraintBottom_toTopOf="@id/inference_time"
+            app:layout_constraintRight_toRightOf="parent" />
 
 
         <TextView
             android:id="@+id/immersive_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:layout_constraintBottom_toTopOf="@id/frame"
-            app:layout_constraintLeft_toLeftOf="parent"
             android:layout_marginLeft="5dp"
             android:layout_marginBottom="5dp"
+            android:text="immersive: "
             android:textColor="#FFFFFF"
-            android:text="immersive: " />
+            app:layout_constraintBottom_toTopOf="@id/frame"
+            app:layout_constraintLeft_toLeftOf="parent" />
 
         <Switch
             android:id="@+id/immersive"
             android:layout_width="52dp"
             android:layout_height="16dp"
+            android:layout_marginEnd="5dp"
             android:textOff="off"
             android:textOn="on"
             app:layout_constraintBottom_toTopOf="@id/frame_size"
             app:layout_constraintRight_toRightOf="parent"
-            android:layout_marginEnd="5dp"
             tools:ignore="UseSwitchCompatOrMaterialXml" />
 
         <TextView
             android:id="@+id/model_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:layout_constraintBottom_toTopOf="@id/immersive_name"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
             android:layout_marginStart="5dp"
             android:layout_marginBottom="5dp"
+            android:text="model: "
             android:textColor="#FFFFFF"
-            android:text="model: " />
+            app:layout_constraintBottom_toTopOf="@id/immersive_name"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <Spinner
             android:id="@+id/model"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="5dp"
             android:layout_marginBottom="0dp"
             android:background="#00000000"
             android:entries="@array/model"
             android:gravity="right"
             android:padding="0dp"
-            android:layout_marginEnd="5dp"
             app:layout_constraintBottom_toTopOf="@id/immersive"
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
